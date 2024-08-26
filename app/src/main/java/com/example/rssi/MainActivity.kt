@@ -18,6 +18,8 @@ import java.io.IOException
 import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
 import android.content.Intent
+import android.media.MediaScannerConnection
+import android.os.Environment
 import java.util.*
 
 class MainActivity : ComponentActivity() {
@@ -25,7 +27,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val WRITE_PERMISSION = 101
     }
-
+//link speed ssid network id
     private lateinit var binding: ActivityMainBinding
     private val rssiList: ArrayList<Int> = ArrayList()
     private val measurePeriod: Int = 500
@@ -35,6 +37,7 @@ class MainActivity : ComponentActivity() {
     private var hasPerms: Boolean = false
     private var measureIsOn: Boolean = false
     private lateinit var wifiManager: WifiManager
+    private lateinit var  csvFilemanager: CSV_FileManager
 
     private val rssiRunnable: Runnable = object : Runnable {
         override fun run() {
@@ -57,6 +60,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        csvFilemanager = CSV_FileManager(this)
 
         wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
 
@@ -93,6 +98,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == WRITE_PERMISSION) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.d("Permission", "Permission has been granted")
@@ -128,34 +134,12 @@ class MainActivity : ComponentActivity() {
     private fun handleSaveButton() {
         if (rssiList.isNotEmpty()) {
             CoroutineScope(Dispatchers.Main).launch {
-                saveRSSIDataToCSV()
+                csvFilemanager.saveRSSIDataToCSV(rssiList);
             }
         } else {
             Toast.makeText(this, "No data to save", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private suspend fun saveRSSIDataToCSV() = withContext(Dispatchers.IO) {
-        val timestamp = SimpleDateFormat("yyMMdd-HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "RSSI_Data_$timestamp.csv"
-        val file = File(getExternalFilesDir(null), fileName)
 
-        try {
-            FileOutputStream(file).use { fileOutputStream ->
-                OutputStreamWriter(fileOutputStream).use { writer ->
-                    writer.append("Sample Number, RSSI\n")
-                    for (i in rssiList.indices) {
-                        writer.append("${i + 1}, ${rssiList[i]}\n")
-                    }
-                    writer.flush()
-                    Log.d("Data", "Data saved as $fileName")
-                }
-            }
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, "Data saved as $fileName", Toast.LENGTH_LONG).show()
-            }
-        } catch (e: IOException) {
-            Log.e("Exception", "File write failed: $e")
-        }
-    }
 }
