@@ -1,6 +1,7 @@
 package com.example.rssi
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
 import android.os.Bundle
@@ -12,14 +13,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.rssi.databinding.ActivityMainBinding
 import kotlinx.coroutines.*
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
-import android.content.Intent
-import android.media.MediaScannerConnection
-import android.os.Environment
 import java.util.*
 
 class MainActivity : ComponentActivity() {
@@ -27,9 +21,9 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val WRITE_PERMISSION = 101
     }
-//link speed ssid network id
+
     private lateinit var binding: ActivityMainBinding
-    private val rssiList: ArrayList<Int> = ArrayList()
+    private val rssiList: ArrayList<Map<String, String>> = ArrayList()
     private val measurePeriod: Int = 500
     private val previewPeriod: Int = 250
     private val handler: Handler = Handler()
@@ -37,20 +31,20 @@ class MainActivity : ComponentActivity() {
     private var hasPerms: Boolean = false
     private var measureIsOn: Boolean = false
     private lateinit var wifiManager: WifiManager
-    private lateinit var  csvFilemanager: CSV_FileManager
+    private lateinit var csvFileManager: CSV_FileManager
 
     private val rssiRunnable: Runnable = object : Runnable {
         override fun run() {
-            val newRSSI: Int = getWiFiRSSI()
-            addRSSIMeasurement(newRSSI)
+            val wifiInfo = getWiFiInfo()
+            addWiFiMeasurement(wifiInfo)
             handler.postDelayed(this, measurePeriod.toLong())
-            Log.d("Runnable", "RSSI measured: $newRSSI")
+            Log.d("Runnable", "Wi-Fi info measured: $wifiInfo")
         }
     }
 
     private val rssiPreviewRunnable: Runnable = object : Runnable {
         override fun run() {
-            val receivedRSSI: Int = getWiFiRSSI()
+            val receivedRSSI = getWiFiInfo()["rssi"]?.toInt() ?: 0
             updateRSSIPreview(receivedRSSI)
             handler.postDelayed(this, previewPeriod.toLong())
         }
@@ -61,8 +55,7 @@ class MainActivity : ComponentActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        csvFilemanager = CSV_FileManager(this)
-
+        csvFileManager = CSV_FileManager(this)
         wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
 
         binding.buttonStart.setOnClickListener { handleStartButton() }
@@ -81,16 +74,21 @@ class MainActivity : ComponentActivity() {
         handler.postDelayed(rssiPreviewRunnable, previewPeriod.toLong())
     }
 
-    private fun getWiFiRSSI(): Int {
+    private fun getWiFiInfo(): Map<String, String> {
         val wifiInfo = wifiManager.connectionInfo
-        return wifiInfo.rssi
+        return mapOf(
+            "rssi" to wifiInfo.rssi.toString(),
+            "linkSpeed" to wifiInfo.linkSpeed.toString(), // in Mbps
+            "ssid" to wifiInfo.ssid,
+            "networkId" to wifiInfo.networkId.toString()
+        )
     }
 
-    private fun addRSSIMeasurement(rssi: Int) {
-        rssiList.add(rssi)
+    private fun addWiFiMeasurement(infoMap: Map<String, String>) {
+        rssiList.add(infoMap)
         numSamples++
         binding.textViewSampleCount.text = "Amount of samples: $numSamples"
-        binding.textViewRssi.text = rssi.toString()
+        binding.textViewRssi.text = infoMap["rssi"]
     }
 
     private fun updateRSSIPreview(rssi: Int) {
@@ -134,12 +132,10 @@ class MainActivity : ComponentActivity() {
     private fun handleSaveButton() {
         if (rssiList.isNotEmpty()) {
             CoroutineScope(Dispatchers.Main).launch {
-                csvFilemanager.saveRSSIDataToCSV(rssiList);
+                csvFileManager.saveWiFiDataToCSV(rssiList)
             }
         } else {
             Toast.makeText(this, "No data to save", Toast.LENGTH_SHORT).show()
         }
     }
-
-
 }

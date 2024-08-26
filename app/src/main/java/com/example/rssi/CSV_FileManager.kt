@@ -1,3 +1,4 @@
+
 package com.example.rssi
 
 import android.content.Context
@@ -16,10 +17,10 @@ import java.util.*
 
 class CSV_FileManager(private val context: Context) {
 
-    suspend fun saveRSSIDataToCSV(rssiList: ArrayList<Int>) = withContext(Dispatchers.IO) {
+    suspend fun saveWiFiDataToCSV(dataList: ArrayList<Map<String, String>>) = withContext(Dispatchers.IO) {
         val appName = context.getString(R.string.app_name)
         val timestamp = SimpleDateFormat("yyMMdd-HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "RSSI_Data_$timestamp.csv"
+        val fileName = "WiFi_Data_$timestamp.csv"
 
         val state = Environment.getExternalStorageState()
         if (Environment.MEDIA_MOUNTED != state) {
@@ -29,7 +30,6 @@ class CSV_FileManager(private val context: Context) {
             return@withContext
         }
 
-        // Use the Downloads directory to make the file visible in the file manager
         val appDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), appName)
 
         if (!appDir.exists()) {
@@ -47,16 +47,16 @@ class CSV_FileManager(private val context: Context) {
         try {
             FileOutputStream(file).use { fileOutputStream ->
                 OutputStreamWriter(fileOutputStream).use { writer ->
-                    writer.append("Sample Number, RSSI\n")
-                    for (i in rssiList.indices) {
-                        writer.append("${i + 1}, ${rssiList[i]}\n")
+                    writer.append("Sample Number, RSSI, Link Speed (Mbps), SSID, Network ID\n")
+                    for (i in dataList.indices) {
+                        val data = dataList[i]
+                        writer.append("${i + 1}, ${data["rssi"]}, ${data["linkSpeed"]}, ${data["ssid"]}, ${data["networkId"]}\n")
                     }
                     writer.flush()
-                    Log.d("Data", "Data saved as $fileName in $appName directory")
+                    Log.d("Data", "Data saved as $fileName in RSSI directory")
                 }
             }
 
-            // Notify the media scanner to make the file visible in the file manager
             MediaScannerConnection.scanFile(
                 context,
                 arrayOf(file.toString()),
@@ -66,11 +66,10 @@ class CSV_FileManager(private val context: Context) {
             }
 
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Data saved as $fileName in $appName directory", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Data saved as $fileName in RSSI directory", Toast.LENGTH_LONG).show()
             }
         } catch (e: IOException) {
             Log.e("Exception", "File write failed: $e")
         }
     }
-
 }
