@@ -5,7 +5,6 @@ RSSI Analyzer is an Android application designed to measure, display, and store 
 
 - **Real-time RSSI Measurement:** Continuously monitors and displays the RSSI values.
 - **Data Logging:** Saves RSSI values into a CSV file for later analysis.
-- **CSV Data Display:** A dedicated activity to read and display the stored RSSI data from the CSV file.
 - **Kotlin Coroutines:** Efficient handling of background tasks for reading and writing CSV files.
 
 ## Installation
