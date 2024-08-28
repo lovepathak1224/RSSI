@@ -1,6 +1,9 @@
 # RSSI Analyzer
 
 RSSI Analyzer is an Android application designed to measure, display, and store RSSI (Received Signal Strength Indicator) values. It also includes features for saving RSSI data into a CSV file.
+
+https://github.com/user-attachments/assets/cece4746-bfd4-4b0b-aa41-d42394e9ee1b
+
 ## Features
 
 - **Real-time RSSI Measurement:** Continuously monitors and displays the RSSI values.
